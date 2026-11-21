@@ -1,0 +1,62 @@
+# Fork-only: screenshots of the Qt theme on Windows and Linux, for the PR description.
+name: Theme screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: "Run ID of the release build whose binaries to use"
+        required: true
+      version:
+        description: "Version used in that build's artifact names"
+        required: true
+        default: "4.0.1-theme"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  screenshots:
+    name: Screenshots ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux
+            os: ubuntu-24.04
+            artifact: x86_64-linux-gnu.tar.gz
+          - name: windows
+            os: windows-2025
+            artifact: win64.zip
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: nito-${{ inputs.version }}-${{ matrix.artifact }}
+          run-id: ${{ inputs.build_run_id }}
+          github-token: ${{ github.token }}
+          path: dl
+      - name: Linux screenshots
+        if: matrix.name == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 fonts-noto-core
+          sudo apt-get install -y fonts-ubuntu || true
+          tar -xzf dl/*.tar.gz -C dl
+          xvfb-run -a -s "-screen 0 1600x1000x24" .github/theme-screenshots/shoot.sh dl/bin/nito-qt shots
+      - name: Windows screenshots
+        if: matrix.name == 'windows'
+        run: |
+          unzip -q dl/*.zip -d dl
+          .github/theme-screenshots/shoot.sh dl/bin/nito-qt.exe shots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-${{ matrix.name }}
+          path: shots

@@ -29,6 +29,7 @@
 #include <qt/intro.h>
 #include <qt/networkstyle.h>
 #include <qt/nitotheme.h>
+#include <qt/screenshothook.h> // LOCAL ONLY
 #include <qt/optionsmodel.h>
 #include <qt/platformstyle.h>
 #include <qt/splashscreen.h>
@@ -434,6 +435,7 @@ void NitoApplication::initializeResult(bool success, interfaces::BlockAndHeaderT
             window->showMinimized();
         }
         Q_EMIT windowShown(window);
+        NitoScreenshotHook(window); // LOCAL ONLY
 
 #ifdef ENABLE_WALLET
         // Now that initialization/startup is done, process any command-line
@@ -643,12 +645,12 @@ int GuiMain(int argc, char* argv[])
     PaymentServer::ipcParseCommandLine(argc, argv);
 #endif
 
-    QScopedPointer<const NetworkStyle> networkStyle(NetworkStyle::instantiate(Params().GetChainType()));
+    QScopedPointer<const NetworkStyle> networkStyle(NetworkStyle::instantiate(NitoScreenshotChain(Params().GetChainType())));
     assert(!networkStyle.isNull());
     // Allow for separate UI settings for testnets
     QApplication::setApplicationName(networkStyle->getAppName());
     // Use this network's colours from now on
-    SetupNitoTheme(app, Params().GetChainType());
+    SetupNitoTheme(app, NitoScreenshotChain(Params().GetChainType()));
     // Re-initialize translations after changing application name (language in network-specific settings can be different)
     initTranslations(qtTranslatorBase, qtTranslator, translatorBase, translator);
 
