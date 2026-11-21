@@ -37,12 +37,18 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: nito-${{ inputs.version || '4.0.1-theme' }}-${{ matrix.artifact }}
-          run-id: ${{ inputs.build_run_id || '44942304792' }}
-          github-token: ${{ github.token }}
-          path: dl
+      # The release build uploads its files unzipped (archive: false), which
+      # download-artifact v4 can't handle, so fetch the file through the API.
+      - name: Download build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.build_run_id || '44942304792' }}
+          NAME: nito-${{ inputs.version || '4.0.1-theme' }}-${{ matrix.artifact }}
+        run: |
+          mkdir -p dl
+          id=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/artifacts" --jq ".artifacts[] | select(.name == \"$NAME\") | .id")
+          gh api "repos/${{ github.repository }}/actions/artifacts/$id/zip" > "dl/$NAME"
+          ls -l dl
       - name: Linux screenshots
         if: matrix.name == 'linux'
         run: |
