@@ -42,7 +42,7 @@ jobs:
       - name: Download build
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ inputs.build_run_id || '44942304792' }}
+          RUN_ID: ${{ inputs.build_run_id || '44961103965' }}
           NAME: nito-${{ inputs.version || '4.0.1-theme' }}-${{ matrix.artifact }}
         run: |
           mkdir -p dl
