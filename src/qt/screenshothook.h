@@ -57,16 +57,19 @@ inline void NitoScreenshotHook(QMainWindow* window)
 
     using Step = std::function<void()>;
     auto steps = std::make_shared<std::vector<Step>>();
-    steps->push_back([window] { window->resize(1000, 660); window->raise(); window->activateWindow(); });
+    auto overlay = [window]() -> QWidget* {
+        for (QWidget* w : window->findChildren<QWidget*>()) if (w->inherits("ModalOverlay")) return w;
+        return nullptr;
+    };
+    steps->push_back([window, overlay] {
+        window->resize(1000, 660); window->raise(); window->activateWindow();
+        if (QWidget* o = overlay(); o && o->y() == 0) QMetaObject::invokeMethod(o, "toggleVisibility");
+    });
     for (const char* page : {"Overview", "Send", "Receive", "Transactions"}) {
         const QString p{QString::fromLatin1(page)};
         steps->push_back([trigger, p] { trigger(p); });
         steps->push_back([save, window, p] { save(window, "main-" + p.toLower()); });
     }
-    auto overlay = [window]() -> QWidget* {
-        for (QWidget* w : window->findChildren<QWidget*>()) if (w->inherits("ModalOverlay")) return w;
-        return nullptr;
-    };
     steps->push_back([overlay] { if (QWidget* o = overlay(); o && o->y() != 0) QMetaObject::invokeMethod(o, "toggleVisibility"); });
     steps->push_back([save, window] { save(window, "overlay"); });
     steps->push_back([overlay] { if (QWidget* o = overlay(); o && o->y() == 0) QMetaObject::invokeMethod(o, "toggleVisibility"); });
